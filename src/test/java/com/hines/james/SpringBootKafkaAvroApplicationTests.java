@@ -36,7 +36,7 @@ public class SpringBootKafkaAvroApplicationTests {
     private static final String TEST_TOPIC_1 = "test-topic-1";
 
     @ClassRule
-    public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, true, TEST_TOPIC_1);
+    public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, false, TEST_TOPIC_1);
 
     @Test
     public void testTemplate() throws Exception {
@@ -52,44 +52,38 @@ public class SpringBootKafkaAvroApplicationTests {
 
         final BlockingQueue<ConsumerRecord<Integer, String>> records = new LinkedBlockingQueue<>();
 
-        listenerContainer.setupMessageListener(new MessageListener<Integer, String>() {
-            @Override
-            public void onMessage(ConsumerRecord<Integer, String> record) {
-                log.info(record.toString());
-                records.add(record);
-            }
+        listenerContainer.setupMessageListener((MessageListener<Integer, String>) record -> {
+            log.info("ConsumerRecord: {}", record.toString());
+            records.add(record);
         });
 
-        listenerContainer.setBeanName("templateTests");
+        listenerContainer.setBeanName("embeddedListenerContainer");
         listenerContainer.start();
 
-        ContainerTestUtils.waitForAssignment(listenerContainer,
-                embeddedKafka.getEmbeddedKafka().getPartitionsPerTopic());
+        ContainerTestUtils.waitForAssignment(listenerContainer, embeddedKafka.getEmbeddedKafka().getPartitionsPerTopic());
 
-        Map<String, Object> producerProps =
-                KafkaTestUtils.producerProps(embeddedKafka.getEmbeddedKafka());
+        Map<String, Object> producerProps = KafkaTestUtils.producerProps(embeddedKafka.getEmbeddedKafka());
 
-        ProducerFactory<Integer, String> producerFactory =
-                new DefaultKafkaProducerFactory<>(producerProps);
+        ProducerFactory<Integer, String> producerFactory = new DefaultKafkaProducerFactory<>(producerProps);
 
-        KafkaTemplate<Integer, String> template = new KafkaTemplate<>(producerFactory);
+        KafkaTemplate<Integer, String> kafkaTemplate = new KafkaTemplate<>(producerFactory);
 
-        template.setDefaultTopic(TEST_TOPIC_1);
-        template.sendDefault("foo");
+        kafkaTemplate.setDefaultTopic(TEST_TOPIC_1);
+        kafkaTemplate.sendDefault("foo");
 
-        assertThat(records.poll(10, TimeUnit.SECONDS), hasValue("foo"));
+        assertThat(records.poll(1, TimeUnit.SECONDS), hasValue("foo"));
 
-        template.sendDefault(0, 2, "bar");
+        kafkaTemplate.sendDefault(0, 2, "bar");
 
-        ConsumerRecord<Integer, String> received = records.poll(10, TimeUnit.SECONDS);
+        ConsumerRecord<Integer, String> received = records.poll(1, TimeUnit.SECONDS);
 
         assertThat(received, hasKey(2));
         assertThat(received, hasPartition(0));
         assertThat(received, hasValue("bar"));
 
-        template.send(TEST_TOPIC_1, 0, 2, "baz");
+        kafkaTemplate.send(TEST_TOPIC_1, 0, 2, "baz");
 
-        received = records.poll(10, TimeUnit.SECONDS);
+        received = records.poll(1, TimeUnit.SECONDS);
 
         assertThat(received, hasKey(2));
         assertThat(received, hasPartition(0));
