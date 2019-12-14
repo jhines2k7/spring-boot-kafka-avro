@@ -14,6 +14,13 @@
 	<name>spring-boot-kafka-avro</name>
 	<description>Demo project for Spring Boot with Kafka and Avro</description>
 
+	<repositories>
+		<repository>
+			<id>confluent</id>
+			<url>http://packages.confluent.io/maven/</url>
+		</repository>
+	</repositories>
+
 	<properties>
 		<java.version>13</java.version>
 	</properties>
@@ -61,13 +68,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/io.confluent/kafka-avro-serializer -->
-		<dependency>
-			<groupId>io.confluent</groupId>
-			<artifactId>kafka-avro-serializer</artifactId>
-			<version>5.3.1</version>
-		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/org.apache.avro/avro -->
 		<dependency>
 			<groupId>org.apache.avro</groupId>
@@ -79,6 +79,13 @@
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
 			<scope>test</scope>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/io.confluent/kafka-avro-serializer -->
+		<dependency>
+			<groupId>io.confluent</groupId>
+			<artifactId>kafka-avro-serializer</artifactId>
+			<version>5.3.1</version>
 		</dependency>
 
 	</dependencies>

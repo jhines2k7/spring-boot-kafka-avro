@@ -1,3 +1,13 @@
 spring:
   kafka:
-    bootstrap-servers:
+    bootstrap-servers: http://192.168.99.106:9092
+    properties:
+      schema:
+        registry:
+          url: http://192.168.99.106:8081
+
+com:
+  hines:
+    james:
+      topic: order-topic-1
+      group-id: order-consumer-group-1

@@ -1,92 +1,47 @@
 package com.hines.james;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.listener.ContainerProperties;
-import org.springframework.kafka.listener.KafkaMessageListenerContainer;
-import org.springframework.kafka.listener.MessageListener;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
-import org.springframework.kafka.test.utils.ContainerTestUtils;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertThat;
-import static org.springframework.kafka.test.hamcrest.KafkaMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@DirtiesContext
 @SpringBootTest
-@Slf4j
 public class SpringBootKafkaAvroApplicationTests {
-    private static final String TEST_TOPIC_1 = "test-topic-1";
+    @Value("${com.hines.james.topic}")
+    private String topicName;
 
-    @ClassRule
-    public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, false, TEST_TOPIC_1);
+    @Autowired
+    KafkaTemplate<String, Order> kafkaTemplate;
+
+    @Autowired
+    FooService fooService;
 
     @Test
-    public void testTemplate() throws Exception {
-        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps("test-consumer-group", "false",
-                embeddedKafka.getEmbeddedKafka());
+    public void listen_calls_fooService_doStuff_and_returns_a_value_of_10() throws Exception {
+        Order order = Order.newBuilder()
+                .setOrderId("654321")
+                .setCustomerId("123456")
+                .setSupplierId("aabbccdd")
+                .setFirstName("James")
+                .setLastName("Hines")
+                .setItems(5)
+                .setPrice(10.00f)
+                .setWeight(5.00f)
+                .setAutomatedEmail(true)
+                .build();
 
-        DefaultKafkaConsumerFactory<Integer, String> consumerFactory = new DefaultKafkaConsumerFactory<>(consumerProps);
+        kafkaTemplate.send(topicName, 0, (String)order.getOrderId(), order);
 
-        ContainerProperties containerProperties = new ContainerProperties(TEST_TOPIC_1);
+        Thread.sleep(1000);
 
-        KafkaMessageListenerContainer<Integer, String> listenerContainer =
-                new KafkaMessageListenerContainer<>(consumerFactory, containerProperties);
-
-        final BlockingQueue<ConsumerRecord<Integer, String>> records = new LinkedBlockingQueue<>();
-
-        listenerContainer.setupMessageListener((MessageListener<Integer, String>) record -> {
-            log.info("ConsumerRecord: {}", record.toString());
-            records.add(record);
-        });
-
-        listenerContainer.setBeanName("embeddedListenerContainer");
-        listenerContainer.start();
-
-        ContainerTestUtils.waitForAssignment(listenerContainer, embeddedKafka.getEmbeddedKafka().getPartitionsPerTopic());
-
-        Map<String, Object> producerProps = KafkaTestUtils.producerProps(embeddedKafka.getEmbeddedKafka());
-
-        ProducerFactory<Integer, String> producerFactory = new DefaultKafkaProducerFactory<>(producerProps);
-
-        KafkaTemplate<Integer, String> kafkaTemplate = new KafkaTemplate<>(producerFactory);
-
-        kafkaTemplate.setDefaultTopic(TEST_TOPIC_1);
-        kafkaTemplate.sendDefault("foo");
-
-        assertThat(records.poll(1, TimeUnit.SECONDS), hasValue("foo"));
-
-        kafkaTemplate.sendDefault(0, 2, "bar");
-
-        ConsumerRecord<Integer, String> received = records.poll(1, TimeUnit.SECONDS);
-
-        assertThat(received, hasKey(2));
-        assertThat(received, hasPartition(0));
-        assertThat(received, hasValue("bar"));
-
-        kafkaTemplate.send(TEST_TOPIC_1, 0, 2, "baz");
-
-        received = records.poll(1, TimeUnit.SECONDS);
-
-        assertThat(received, hasKey(2));
-        assertThat(received, hasPartition(0));
-        assertThat(received, hasValue("baz"));
+        assertThat(fooService.doStuff()).isEqualTo(9);
     }
 }
