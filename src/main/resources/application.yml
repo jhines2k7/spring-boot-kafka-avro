@@ -11,3 +11,4 @@ com:
     james:
       topic: order-topic-1
       group-id: order-consumer-group-1
+      offset-reset-config: earliest

@@ -27,6 +27,9 @@ public class KafkaConsumerConfig {
     @Value("${spring.kafka.properties.schema.registry.url}")
     private String schemaRegistryUrl;
 
+    @Value("${com.hines.james.offset-reset-config}")
+    private String offsetResetConfig;
+
     @Bean
     public ConsumerFactory<String, Order> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -34,7 +37,7 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetResetConfig);
         props.put("schema.registry.url", schemaRegistryUrl);
 
         return new DefaultKafkaConsumerFactory<>(props);

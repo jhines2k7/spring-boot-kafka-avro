@@ -42,6 +42,6 @@ public class SpringBootKafkaAvroApplicationTests {
 
         Thread.sleep(1000);
 
-        assertThat(fooService.doStuff()).isEqualTo(9);
+        assertThat(fooService.doStuff()).isEqualTo(10);
     }
 }
